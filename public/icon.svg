@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#FAF6F0"/>
+  <g transform="translate(60 200)">
+    <!-- ears -->
+    <ellipse cx="92" cy="34" rx="32" ry="56" fill="#B57579" transform="rotate(-12 92 34)"/>
+    <!-- body -->
+    <rect x="60" y="48" width="320" height="84" rx="42" fill="#D89B9E"/>
+    <!-- head -->
+    <ellipse cx="98" cy="62" rx="58" ry="50" fill="#D89B9E"/>
+    <!-- snout -->
+    <ellipse cx="60" cy="78" rx="22" ry="14" fill="#E8C4C8"/>
+    <!-- nose -->
+    <circle cx="48" cy="76" r="6" fill="#3A2E2A"/>
+    <!-- eye -->
+    <circle cx="92" cy="56" r="5" fill="#3A2E2A"/>
+    <!-- legs -->
+    <rect x="100" y="120" width="20" height="42" rx="10" fill="#B57579"/>
+    <rect x="160" y="120" width="20" height="42" rx="10" fill="#B57579"/>
+    <rect x="280" y="120" width="20" height="42" rx="10" fill="#B57579"/>
+    <rect x="340" y="120" width="20" height="42" rx="10" fill="#B57579"/>
+    <!-- tail -->
+    <path d="M 380 80 Q 420 60 416 30" stroke="#D89B9E" stroke-width="14" stroke-linecap="round" fill="none"/>
+  </g>
+</svg>
