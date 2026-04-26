@@ -131,7 +131,7 @@ function Section({
 }
 
 function BradWorryCard({ worry }: { worry: Worry }) {
-  const [open, setOpen] = useState(worry.status === "new");
+  const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [promise, setPromise] = useState(worry.brads_promise ?? "");
   const [eta, setEta] = useState(worry.brads_promise_eta ?? "");
