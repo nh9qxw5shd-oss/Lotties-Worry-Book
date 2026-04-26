@@ -5,7 +5,6 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Worry } from "@/lib/types";
 import { SausageDog } from "@/components/SausageDog";
-import { ModeToggle } from "@/components/ModeToggle";
 import { markDone } from "@/lib/actions";
 
 interface Props {
@@ -25,11 +24,8 @@ export function LottieBoardClient({ worries, dogName }: Props) {
 
   return (
     <main className="mx-auto max-w-md px-5 pb-32 pt-6">
-      {/* Top bar: mode toggle + settings */}
-      <header className="mb-6 flex items-center gap-3">
-        <div className="flex-1">
-          <ModeToggle active="lottie" />
-        </div>
+      {/* Top bar: settings */}
+      <header className="mb-6 flex items-center justify-end">
         <Link
           href="/settings"
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-ink-soft shadow-soft"
