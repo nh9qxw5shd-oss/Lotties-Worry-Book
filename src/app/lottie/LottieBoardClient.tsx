@@ -1,23 +1,58 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import type { Worry } from "@/lib/types";
+import type { Reflection, Worry } from "@/lib/types";
 import { SausageDog } from "@/components/SausageDog";
+import { QuickTools } from "@/components/QuickTools";
+import { ReflectFlow } from "@/components/exercises/ReflectFlow";
+import { DogOffer } from "@/components/DogOffer";
 import { markDone } from "@/lib/actions";
 
 interface Props {
   worries: Worry[];
   dogName: string | null;
+  reflections: Reflection[];
 }
 
-export function LottieBoardClient({ worries, dogName }: Props) {
+export function LottieBoardClient({ worries, dogName, reflections }: Props) {
   const promised = worries.filter((w) => w.status === "in_progress");
   const seen = worries.filter((w) => w.status === "seen");
   const newOnes = worries.filter((w) => w.status === "new");
   const setDown = worries.filter((w) => w.status === "set_down").slice(0, 8);
   const done = worries.filter((w) => w.status === "done").slice(0, 8);
+
+  const reflectionsByWorry = useMemo(() => {
+    const map = new Map<string, Reflection[]>();
+    for (const r of reflections) {
+      if (!r.worry_id) continue;
+      const list = map.get(r.worry_id) ?? [];
+      list.push(r);
+      map.set(r.worry_id, list);
+    }
+    return map;
+  }, [reflections]);
+
+  const recentOpenWorries = useMemo(
+    () =>
+      worries
+        .filter((w) =>
+          ["new", "seen", "in_progress"].includes(w.status),
+        )
+        .slice(0, 3),
+    [worries],
+  );
+
+  // Count worries created in the last 60 minutes — surfaces a gentle
+  // "lots came up today" offer at the top of the board.
+  const recentBurstCount = useMemo(() => {
+    const cutoff = Date.now() - 60 * 60 * 1000;
+    return worries.filter((w) => new Date(w.created_at).getTime() >= cutoff)
+      .length;
+  }, [worries]);
+
+  const [burstOfferDismissed, setBurstOfferDismissed] = useState(false);
 
   const [showSetDown, setShowSetDown] = useState(false);
   const [showDone, setShowDone] = useState(false);
@@ -25,7 +60,7 @@ export function LottieBoardClient({ worries, dogName }: Props) {
   return (
     <main className="mx-auto max-w-md px-5 pb-32 pt-6">
       {/* Top bar: settings */}
-      <header className="mb-6 flex items-center justify-end">
+      <header className="mb-5 flex items-center justify-end">
         <Link
           href="/settings"
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-ink-soft shadow-soft"
@@ -34,6 +69,23 @@ export function LottieBoardClient({ worries, dogName }: Props) {
           ⚙
         </Link>
       </header>
+
+      {/* Capture-burst offer — gentle, dismissable, in-memory only */}
+      {recentBurstCount >= 3 && !burstOfferDismissed && (
+        <div className="mb-4">
+          <DogOffer
+            context={{
+              kind: "recent_capture_burst",
+              countLast60min: recentBurstCount,
+            }}
+            onDismiss={() => setBurstOfferDismissed(true)}
+            onToolClosed={() => setBurstOfferDismissed(true)}
+          />
+        </div>
+      )}
+
+      {/* Quick tools strip — chrome, not a feature card */}
+      <QuickTools recentWorries={recentOpenWorries} />
 
       {/* Greeting */}
       <div className="mb-5 flex items-end gap-3">
@@ -68,7 +120,11 @@ export function LottieBoardClient({ worries, dogName }: Props) {
           tone="honey"
         >
           {promised.map((w) => (
-            <PromiseCard key={w.id} worry={w} />
+            <PromiseCard
+              key={w.id}
+              worry={w}
+              reflections={reflectionsByWorry.get(w.id) ?? []}
+            />
           ))}
         </Section>
       )}
@@ -81,7 +137,12 @@ export function LottieBoardClient({ worries, dogName }: Props) {
           tone="rose"
         >
           {seen.map((w) => (
-            <WorryRow key={w.id} worry={w} state="seen" />
+            <WorryRow
+              key={w.id}
+              worry={w}
+              state="seen"
+              reflections={reflectionsByWorry.get(w.id) ?? []}
+            />
           ))}
         </Section>
       )}
@@ -94,7 +155,12 @@ export function LottieBoardClient({ worries, dogName }: Props) {
           tone="cream"
         >
           {newOnes.map((w) => (
-            <WorryRow key={w.id} worry={w} state="new" />
+            <WorryRow
+              key={w.id}
+              worry={w}
+              state="new"
+              reflections={reflectionsByWorry.get(w.id) ?? []}
+            />
           ))}
         </Section>
       )}
@@ -207,11 +273,18 @@ function Section({
   );
 }
 
-function PromiseCard({ worry }: { worry: Worry }) {
+function PromiseCard({
+  worry,
+  reflections,
+}: {
+  worry: Worry;
+  reflections: Reflection[];
+}) {
   const [expanded, setExpanded] = useState(false);
   const [pending, startTransition] = useTransition();
   const [showResolve, setShowResolve] = useState(false);
   const [resolvedIntensity, setResolvedIntensity] = useState(2);
+  const [reflectOpen, setReflectOpen] = useState(false);
 
   return (
     <motion.div
@@ -323,6 +396,16 @@ function PromiseCard({ worry }: { worry: Worry }) {
           </div>
         </div>
       )}
+
+      <ReflectionsBlock
+        reflections={reflections}
+        onOpenReflect={() => setReflectOpen(true)}
+      />
+      <ReflectFlow
+        open={reflectOpen}
+        onClose={() => setReflectOpen(false)}
+        worry={worry}
+      />
     </motion.div>
   );
 }
@@ -330,10 +413,13 @@ function PromiseCard({ worry }: { worry: Worry }) {
 function WorryRow({
   worry,
   state,
+  reflections,
 }: {
   worry: Worry;
   state: "new" | "seen";
+  reflections: Reflection[];
 }) {
+  const [reflectOpen, setReflectOpen] = useState(false);
   return (
     <motion.div
       layout
@@ -364,7 +450,68 @@ function WorryRow({
         </div>
         <IntensityPill value={worry.intensity_initial} />
       </div>
+      <ReflectionsBlock
+        reflections={reflections}
+        onOpenReflect={() => setReflectOpen(true)}
+      />
+      <ReflectFlow
+        open={reflectOpen}
+        onClose={() => setReflectOpen(false)}
+        worry={worry}
+      />
     </motion.div>
+  );
+}
+
+function ReflectionsBlock({
+  reflections,
+  onOpenReflect,
+}: {
+  reflections: Reflection[];
+  onOpenReflect: () => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const sorted = [...reflections].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
+  const visible = showAll ? sorted : sorted.slice(0, 3);
+
+  return (
+    <div className="mt-3 border-t border-cream-200/80 pt-3">
+      {sorted.length > 0 && (
+        <div className="mb-3 space-y-2">
+          <p className="text-xs font-medium uppercase tracking-widest text-ink-muted">
+            Your reflections
+          </p>
+          {visible.map((r) => (
+            <div
+              key={r.id}
+              className="rounded-xl bg-white/70 px-3 py-2 text-sm"
+            >
+              <p className="font-serif italic text-ink-soft">{r.question}</p>
+              {r.answer && (
+                <p className="mt-1 whitespace-pre-wrap text-ink">{r.answer}</p>
+              )}
+            </div>
+          ))}
+          {sorted.length > 3 && (
+            <button
+              onClick={() => setShowAll((s) => !s)}
+              className="text-xs text-ink-soft underline"
+            >
+              {showAll ? "Show fewer" : `Show all (${sorted.length})`}
+            </button>
+          )}
+        </div>
+      )}
+      <button
+        onClick={onOpenReflect}
+        className="text-xs text-ink-soft underline"
+      >
+        Look at this thought
+      </button>
+    </div>
   );
 }
 

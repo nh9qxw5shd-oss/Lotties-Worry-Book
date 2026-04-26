@@ -141,6 +141,29 @@ src/
 
 ---
 
+## CBT exercises
+
+Layered on top of the worry tree, all skippable, none gamified, none stored unless you write something:
+
+| Tool | What it does | Lives in |
+|------|--------------|----------|
+| **Breathe** (Quick Tools) | 4-4-4-4 box breathing with a soft pulsing circle, 4 cycles default | `src/components/exercises/BreatheModal.tsx` |
+| **Ground** (Quick Tools) | The 5-4-3-2-1 senses script, one step at a time, every text input optional | `src/components/exercises/GroundModal.tsx` |
+| **Reflect** (Quick Tools + per-worry) | Seven Socratic questions; saves any answers you write to `lwb_reflections` | `src/components/exercises/ReflectFlow.tsx`, `src/components/exercises/ReflectPickerModal.tsx` |
+| **Kind act** (offered after set-down or capture-burst) | Pick one tiny act of self-care, then a 30s "I'll wait" beat | `src/components/exercises/KindActModal.tsx` |
+| **Quick Tools strip** | Three-button row directly under the chrome of Lottie's board | `src/components/QuickTools.tsx` |
+| **Dog offers** (contextual nudges) | Conservative rules surface a tool at the right moment | `src/lib/dogOffers.ts`, `src/components/DogOffer.tsx` |
+
+When dog offers fire (all conservative, all dismissable with equal weight):
+
+- Capturing a worry at intensity ≥ 8 → offered grounding before the worry tree
+- 3+ worries logged in the last 60 minutes → soft "want a pause?" banner at the top of the board (in-memory only — no storage)
+- After setting a worry down (non-actionable) → offered a small kind act, with a 5-second auto-redirect that cancels if she taps in
+
+Database: `supabase/migrations/0002_lwb_reflections.sql` adds the `lwb_reflections` table (idempotent, anon RLS, FK to `lwb_worries` with `ON DELETE CASCADE`, `worry_id` nullable for standalone reflections).
+
+---
+
 ## Security note (worth a read)
 
 There is **no authentication**. The Supabase RLS policies allow the anon role full CRUD on `lwb_` tables. Privacy comes from the unguessable Vercel URL — anyone who knows the URL can read and write the data.

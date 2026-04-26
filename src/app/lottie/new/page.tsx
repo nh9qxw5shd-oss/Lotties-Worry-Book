@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { createWorry } from "@/lib/actions";
 import { SausageDog, pickLine } from "@/components/SausageDog";
+import { DogOffer } from "@/components/DogOffer";
 import { DOG_LINES, EMOTION_OPTIONS, type Emotion } from "@/lib/types";
 
-type Step = "feel" | "tree" | "act" | "letgo" | "saved";
+type Step = "feel" | "intense_offer" | "tree" | "act" | "letgo" | "saved";
 
 export default function NewWorryPage() {
   const router = useRouter();
@@ -34,6 +35,8 @@ export default function NewWorryPage() {
     );
   };
 
+  const [setDownAutoCancel, setSetDownAutoCancel] = useState(false);
+
   const submit = (act: boolean) => {
     setError(null);
     setCanActOn(act);
@@ -52,9 +55,29 @@ export default function NewWorryPage() {
         setError(res.error);
       } else {
         setStep("saved");
-        setTimeout(() => router.push("/lottie"), 2000);
+        // Set-down: defer redirect — DogOffer auto-redirects unless cancelled.
+        // Actionable: redirect quickly as before.
+        if (act) {
+          setTimeout(() => router.push("/lottie"), 2000);
+        }
       }
     });
+  };
+
+  // After a set-down save, auto-redirect after 5 seconds unless cancelled.
+  useEffect(() => {
+    if (step !== "saved" || canActOn !== false) return;
+    if (setDownAutoCancel) return;
+    const t = setTimeout(() => router.push("/lottie"), 5000);
+    return () => clearTimeout(t);
+  }, [step, canActOn, setDownAutoCancel, router]);
+
+  const goNextFromFeel = () => {
+    if (intensity >= 8) {
+      setStep("intense_offer");
+    } else {
+      setStep("tree");
+    }
   };
 
   return (
@@ -171,11 +194,35 @@ export default function NewWorryPage() {
 
             <button
               type="button"
-              onClick={() => setStep("tree")}
+              onClick={goNextFromFeel}
               disabled={!title.trim()}
               className="w-full rounded-2xl bg-ink py-4 text-base font-medium text-cream-50 shadow-soft transition active:scale-[0.98] disabled:opacity-40"
             >
               Next
+            </button>
+          </motion.section>
+        )}
+
+        {step === "intense_offer" && (
+          <motion.section
+            key="intense_offer"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-5"
+          >
+            <DogOffer
+              context={{ kind: "high_intensity_capture", intensity }}
+              onDismiss={() => setStep("tree")}
+              onToolClosed={() => setStep("tree")}
+            />
+            <button
+              type="button"
+              onClick={() => setStep("feel")}
+              className="w-full rounded-2xl bg-white/70 py-3 text-sm text-ink-soft"
+            >
+              ← Back
             </button>
           </motion.section>
         )}
@@ -388,8 +435,19 @@ export default function NewWorryPage() {
             <p className="max-w-xs text-sm text-ink-soft">
               {canActOn
                 ? "Brad will see it next time he looks. Taking you to your board…"
-                : "It can rest here now. Taking you to your board…"}
+                : "It can rest here now."}
             </p>
+
+            {canActOn === false && (
+              <div className="mt-2 w-full">
+                <DogOffer
+                  context={{ kind: "after_set_down" }}
+                  onAccept={() => setSetDownAutoCancel(true)}
+                  onDismiss={() => router.push("/lottie")}
+                  onToolClosed={() => router.push("/lottie")}
+                />
+              </div>
+            )}
           </motion.section>
         )}
       </AnimatePresence>

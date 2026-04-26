@@ -101,6 +101,38 @@ export async function deleteWorry(id: string) {
   revalidatePath("/lottie");
 }
 
+interface CreateReflectionInput {
+  worry_id?: string | null;
+  question: string;
+  answer: string;
+}
+
+export async function createReflection(input: CreateReflectionInput) {
+  const supabase = createClient();
+  const answer = input.answer.trim();
+  if (!answer) return { ok: true };
+
+  const { error } = await supabase.from("lwb_reflections").insert({
+    worry_id: input.worry_id ?? null,
+    question: input.question,
+    answer,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/lottie");
+  return { ok: true };
+}
+
+export async function getReflections(worry_id: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("lwb_reflections")
+    .select("*")
+    .eq("worry_id", worry_id)
+    .order("created_at", { ascending: false });
+  if (error) return { error: error.message, data: [] };
+  return { data: data ?? [] };
+}
+
 interface SettingsInput {
   dog_name?: string | null;
   worry_time_enabled?: boolean;
