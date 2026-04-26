@@ -4,7 +4,6 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Worry } from "@/lib/types";
-import { ModeToggle } from "@/components/ModeToggle";
 import { addPromise, markSeen, markDone, deleteWorry } from "@/lib/actions";
 
 interface Props {
@@ -20,10 +19,7 @@ export function BradViewClient({ worries }: Props) {
 
   return (
     <main className="mx-auto max-w-md px-5 pb-32 pt-6">
-      <header className="mb-6 flex items-center gap-3">
-        <div className="flex-1">
-          <ModeToggle active="brad" />
-        </div>
+      <header className="mb-6 flex items-center justify-end">
         <Link
           href="/settings"
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-ink-soft shadow-soft"
@@ -131,7 +127,7 @@ function Section({
 }
 
 function BradWorryCard({ worry }: { worry: Worry }) {
-  const [open, setOpen] = useState(worry.status === "new");
+  const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [promise, setPromise] = useState(worry.brads_promise ?? "");
   const [eta, setEta] = useState(worry.brads_promise_eta ?? "");
