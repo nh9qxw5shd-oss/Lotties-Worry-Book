@@ -62,7 +62,7 @@ export function ReflectFlow({ open, onClose, worry }: Props) {
   const question = SOCRATIC_QUESTIONS[stepIdx];
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-cream-50 via-lavender-soft/40 to-sage-soft/40">
+    <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-cream-50 via-lavender-soft to-sage-soft">
       <div className="flex items-center justify-end px-5 pt-6">
         <button
           onClick={handleClose}
