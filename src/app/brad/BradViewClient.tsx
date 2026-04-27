@@ -11,6 +11,20 @@ interface Props {
 }
 
 export function BradViewClient({ worries }: Props) {
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+
+  const toggleOpen = (id: string) => {
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   const newOnes = worries.filter((w) => w.status === "new");
   const seen = worries.filter((w) => w.status === "seen");
   const inProgress = worries.filter((w) => w.status === "in_progress");
@@ -48,7 +62,12 @@ export function BradViewClient({ worries }: Props) {
       {newOnes.length > 0 && (
         <Section title="New" subtitle={`${newOnes.length} waiting`} accent="rose">
           {newOnes.map((w) => (
-            <BradWorryCard key={w.id} worry={w} />
+            <BradWorryCard
+              key={w.id}
+              worry={w}
+              isOpen={openIds.has(w.id)}
+              onToggle={() => toggleOpen(w.id)}
+            />
           ))}
         </Section>
       )}
@@ -60,7 +79,12 @@ export function BradViewClient({ worries }: Props) {
           accent="cream"
         >
           {seen.map((w) => (
-            <BradWorryCard key={w.id} worry={w} />
+            <BradWorryCard
+              key={w.id}
+              worry={w}
+              isOpen={openIds.has(w.id)}
+              onToggle={() => toggleOpen(w.id)}
+            />
           ))}
         </Section>
       )}
@@ -72,7 +96,12 @@ export function BradViewClient({ worries }: Props) {
           accent="honey"
         >
           {inProgress.map((w) => (
-            <BradWorryCard key={w.id} worry={w} />
+            <BradWorryCard
+              key={w.id}
+              worry={w}
+              isOpen={openIds.has(w.id)}
+              onToggle={() => toggleOpen(w.id)}
+            />
           ))}
         </Section>
       )}
@@ -126,8 +155,15 @@ function Section({
   );
 }
 
-function BradWorryCard({ worry }: { worry: Worry }) {
-  const [open, setOpen] = useState(false);
+function BradWorryCard({
+  worry,
+  isOpen,
+  onToggle,
+}: {
+  worry: Worry;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
   const [pending, startTransition] = useTransition();
   const [promise, setPromise] = useState(worry.brads_promise ?? "");
   const [eta, setEta] = useState(worry.brads_promise_eta ?? "");
@@ -135,13 +171,13 @@ function BradWorryCard({ worry }: { worry: Worry }) {
 
   // auto-mark as seen when card is opened for a 'new' worry
   useEffect(() => {
-    if (open && worry.status === "new") {
+    if (isOpen && worry.status === "new") {
       startTransition(async () => {
         await markSeen(worry.id);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [isOpen]);
 
   const intensityTone =
     worry.intensity_initial >= 8
@@ -156,7 +192,7 @@ function BradWorryCard({ worry }: { worry: Worry }) {
       className="overflow-hidden rounded-3xl bg-white/90 shadow-soft"
     >
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={onToggle}
         className="flex w-full items-start justify-between gap-3 p-5 text-left"
       >
         <div className="flex-1">
@@ -181,7 +217,7 @@ function BradWorryCard({ worry }: { worry: Worry }) {
       </button>
 
       <AnimatePresence>
-        {open && (
+        {isOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
